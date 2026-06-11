@@ -1,0 +1,136 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  background: #0f1117;
+  color: #e8eaed;
+  height: 100dvh;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #2a2d35;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.status {
+  font-size: 0.8rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  background: #2a2d35;
+  color: #9aa0a6;
+}
+
+.status.listening { background: #1a3a2a; color: #6dd58c; }
+.status.thinking  { background: #2a2a1a; color: #e8c468; }
+.status.speaking  { background: #1a2a3a; color: #68b8e8; }
+
+.caption {
+  padding: 0.5rem 1.25rem;
+  font-style: italic;
+  color: #9aa0a6;
+  min-height: 2rem;
+  border-bottom: 1px solid #1e2028;
+}
+
+.caption.hidden {
+  visibility: hidden;
+}
+
+.transcript {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.bubble {
+  max-width: 80%;
+  padding: 0.65rem 1rem;
+  border-radius: 1rem;
+  line-height: 1.45;
+  word-wrap: break-word;
+}
+
+.bubble.user {
+  align-self: flex-end;
+  background: #3b5bdb;
+  border-bottom-right-radius: 0.25rem;
+}
+
+.bubble.assistant {
+  align-self: flex-start;
+  background: #2a2d35;
+  border-bottom-left-radius: 0.25rem;
+}
+
+.input-bar {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid #2a2d35;
+}
+
+.input-bar input {
+  flex: 1;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid #2a2d35;
+  border-radius: 0.5rem;
+  background: #1a1c23;
+  color: #e8eaed;
+  font-size: 1rem;
+}
+
+.input-bar input:focus {
+  outline: none;
+  border-color: #3b5bdb;
+}
+
+.input-bar button {
+  padding: 0.6rem 1rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: #3b5bdb;
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.input-bar button:disabled,
+.input-bar input:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+#mic-btn {
+  background: #2a2d35;
+  font-size: 1.2rem;
+  padding: 0.6rem 0.75rem;
+}
+
+#mic-btn.active {
+  background: #1a3a2a;
+}

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pipsqueak Agent</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>Pipsqueak</h1>
+      <span id="status" class="status idle">Idle</span>
+    </header>
+
+    <div id="caption" class="caption hidden"></div>
+
+    <main id="transcript" class="transcript"></main>
+
+    <footer class="input-bar">
+      <button id="mic-btn" type="button" title="Push to talk">🎤</button>
+      <input id="text-input" type="text" placeholder="Type a message..." autocomplete="off">
+      <button id="send-btn" type="button">Send</button>
+    </footer>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
