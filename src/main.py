@@ -1,25 +1,20 @@
-import ollama
+from .agent import AgentSession
 
-from .config.agent import MODEL, SYSTEM
 
-from .stt import listen
-from .tts import speak
+def _cli_on_event(event: dict) -> None:
+    if event["type"] == "partial":
+        print(f"\rYou: {event['text']}", end="", flush=True)
+    elif event["type"] == "user":
+        print()
+    elif event["type"] == "assistant":
+        print(f"Agent: {event['text']}")
 
 
 def voice_loop():
-    history = [{"role": "system", "content": SYSTEM}]
+    session = AgentSession(on_event=_cli_on_event)
     while True:
         input("\nPress Enter to speak...")
-        text = listen()
-        if not text:
-            continue
-        print(f"You: {text}")
-        history.append({"role": "user", "content": text})
-        resp = ollama.chat(model=MODEL, messages=history)
-        reply = resp["message"]["content"]
-        print(f"Agent: {reply}")
-        history.append({"role": "assistant", "content": reply})
-        speak(reply)
+        session.listen_and_reply()
 
 
 if __name__ == "__main__":
