@@ -8,6 +8,8 @@ const micBtn = document.getElementById("mic-btn");
 let ws = null;
 let state = "idle";
 let reconnectTimer = null;
+let typingIndicator = null;
+let activeAssistantBubble = null;
 
 const STATUS_LABELS = {
   idle: "Idle",
@@ -15,6 +17,10 @@ const STATUS_LABELS = {
   thinking: "Thinking…",
   speaking: "Speaking…",
 };
+
+function scrollTranscript() {
+  transcript.scrollTop = transcript.scrollHeight;
+}
 
 function setState(newState) {
   state = newState;
@@ -32,21 +38,75 @@ function addBubble(role, text) {
   el.className = `bubble ${role}`;
   el.textContent = text;
   transcript.appendChild(el);
-  transcript.scrollTop = transcript.scrollHeight;
+  scrollTranscript();
+  return el;
+}
+
+function removeTypingIndicator() {
+  if (typingIndicator) {
+    typingIndicator.remove();
+    typingIndicator = null;
+  }
+}
+
+function showTypingIndicator() {
+  removeTypingIndicator();
+  typingIndicator = document.createElement("div");
+  typingIndicator.className = "bubble assistant typing";
+  typingIndicator.innerHTML = "<span></span><span></span><span></span>";
+  transcript.appendChild(typingIndicator);
+  scrollTranscript();
+}
+
+function clearAssistantStream() {
+  removeTypingIndicator();
+  activeAssistantBubble = null;
+}
+
+function ensureAssistantBubble() {
+  removeTypingIndicator();
+  if (!activeAssistantBubble) {
+    activeAssistantBubble = document.createElement("div");
+    activeAssistantBubble.className = "bubble assistant streaming";
+    transcript.appendChild(activeAssistantBubble);
+  }
+}
+
+function updateAssistantBubble(text) {
+  ensureAssistantBubble();
+  activeAssistantBubble.textContent = text;
+  scrollTranscript();
+}
+
+function finalizeAssistantBubble(text) {
+  ensureAssistantBubble();
+  activeAssistantBubble.textContent = text;
+  activeAssistantBubble.classList.remove("streaming");
+  activeAssistantBubble = null;
+  scrollTranscript();
 }
 
 function handleEvent(event) {
   switch (event.type) {
     case "status":
       setState(event.state);
-      if (event.state !== "listening") {
+      if (event.state === "thinking") {
+        showTypingIndicator();
+      } else if (event.state === "listening") {
+        clearAssistantStream();
         caption.classList.add("hidden");
         caption.textContent = "";
+      } else if (event.state === "idle") {
+        removeTypingIndicator();
+        activeAssistantBubble = null;
       }
       break;
     case "partial":
       caption.classList.remove("hidden");
       caption.textContent = event.text;
+      break;
+    case "assistant_partial":
+      updateAssistantBubble(event.text);
       break;
     case "user":
       caption.classList.add("hidden");
@@ -54,9 +114,10 @@ function handleEvent(event) {
       addBubble("user", event.text);
       break;
     case "assistant":
-      addBubble("assistant", event.text);
+      finalizeAssistantBubble(event.text);
       break;
     case "error":
+      clearAssistantStream();
       addBubble("assistant", `Error: ${event.message}`);
       break;
   }
@@ -78,6 +139,7 @@ function connect() {
   };
 
   ws.onclose = () => {
+    clearAssistantStream();
     setState("idle");
     reconnectTimer = setTimeout(connect, 2000);
   };

@@ -9,6 +9,22 @@ from ..agent import AgentSession
 
 FRONTEND_DIR = Path(__file__).parent
 
+OLLAMA_HELP = (
+    "Cannot connect to Ollama. Start the Ollama app or run `ollama serve`, "
+    "then try again."
+)
+
+
+def format_agent_error(exc: Exception) -> str:
+    if isinstance(exc, ConnectionError):
+        return str(exc)
+    name = type(exc).__name__
+    msg = str(exc).lower()
+    if name == "ConnectError" or "refused" in msg or "10061" in msg:
+        return OLLAMA_HELP
+    return str(exc)
+
+
 app = FastAPI()
 turn_lock = asyncio.Lock()
 
@@ -43,11 +59,15 @@ async def websocket_endpoint(ws: WebSocket):
                 try:
                     if action == "send":
                         text = data.get("text", "")
-                        await asyncio.to_thread(session.send_text, text, False)
+                        await asyncio.to_thread(
+                            session.send_text, text, speak_reply=True
+                        )
                     elif action == "listen":
                         await asyncio.to_thread(session.listen_and_reply)
                 except Exception as exc:
-                    await ws.send_json({"type": "error", "message": str(exc)})
+                    await ws.send_json(
+                        {"type": "error", "message": format_agent_error(exc)}
+                    )
                     await ws.send_json({"type": "status", "state": "idle"})
     except WebSocketDisconnect:
         pass
