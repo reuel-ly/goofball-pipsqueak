@@ -35,6 +35,10 @@ def _get_model():
     return _stt
 
 
+def prewarm() -> None:
+    _get_model()
+
+
 def _int16_to_float32(pcm: np.ndarray) -> np.ndarray:
     return pcm.astype(np.float32) / 32768.0
 
