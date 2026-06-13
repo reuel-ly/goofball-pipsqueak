@@ -26,6 +26,13 @@ def synthesize(text: str) -> np.ndarray:
     return np.concatenate(chunks)
 
 
+def prewarm() -> None:
+    print("Pre-warming TTS...")
+    _get_pipeline()
+    synthesize(".")
+    print("TTS ready.")
+
+
 class AudioPlayer:
     """Play audio segments sequentially from a queue."""
 
