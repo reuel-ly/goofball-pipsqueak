@@ -12,6 +12,49 @@ body {
   height: 100dvh;
 }
 
+.loading-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0f1117;
+}
+
+.loading-screen.hidden {
+  display: none;
+}
+
+.loading-content {
+  text-align: center;
+}
+
+.loading-content h1 {
+  margin: 0 0 0.75rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.loading-content p {
+  margin: 0 0 1.25rem;
+  color: #9aa0a6;
+}
+
+.loading-spinner {
+  width: 2rem;
+  height: 2rem;
+  margin: 0 auto;
+  border: 3px solid #2a2d35;
+  border-top-color: #3b5bdb;
+  border-radius: 50%;
+  animation: loading-spin 0.8s linear infinite;
+}
+
+@keyframes loading-spin {
+  to { transform: rotate(360deg); }
+}
+
 .app {
   display: flex;
   flex-direction: column;
@@ -45,6 +88,7 @@ header h1 {
 .status.listening { background: #1a3a2a; color: #6dd58c; }
 .status.thinking  { background: #2a2a1a; color: #e8c468; }
 .status.speaking  { background: #1a2a3a; color: #68b8e8; }
+.status.loading   { background: #2a2d35; color: #9aa0a6; }
 
 .caption {
   padding: 0.5rem 1.25rem;

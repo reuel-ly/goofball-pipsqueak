@@ -1,11 +1,14 @@
 import asyncio
 import os
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 
-from ..agent import AgentSession
+from ..agent import AgentSession, prewarm as prewarm_llm
+from ..stt import prewarm as prewarm_stt
+from ..tts import prewarm as prewarm_tts
 
 FRONTEND_DIR = Path(__file__).parent
 
@@ -25,7 +28,39 @@ def format_agent_error(exc: Exception) -> str:
     return str(exc)
 
 
-app = FastAPI()
+def prewarm_all() -> str | None:
+    try:
+        prewarm_llm()
+    except Exception as exc:
+        return format_agent_error(exc)
+    try:
+        prewarm_stt()
+    except Exception as exc:
+        return str(exc)
+    try:
+        prewarm_tts()
+    except Exception as exc:
+        return str(exc)
+    return None
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    app.state.ready_event = asyncio.Event()
+    app.state.prewarm_error: str | None = None
+
+    async def run_prewarm() -> None:
+        try:
+            app.state.prewarm_error = await asyncio.to_thread(prewarm_all)
+        finally:
+            app.state.ready_event.set()
+
+    task = asyncio.create_task(run_prewarm())
+    yield
+    task.cancel()
+
+
+app = FastAPI(lifespan=lifespan)
 turn_lock = asyncio.Lock()
 
 
@@ -48,6 +83,13 @@ async def websocket_endpoint(ws: WebSocket):
     emitter = asyncio.create_task(emit_events())
 
     try:
+        await ws.send_json({"type": "status", "state": "loading"})
+        await ws.app.state.ready_event.wait()
+        if ws.app.state.prewarm_error:
+            await ws.send_json(
+                {"type": "error", "message": ws.app.state.prewarm_error}
+            )
+        await ws.send_json({"type": "ready"})
         await ws.send_json({"type": "status", "state": "idle"})
         while True:
             data = await ws.receive_json()

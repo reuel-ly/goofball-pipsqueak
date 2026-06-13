@@ -4,15 +4,19 @@ const statusEl = document.getElementById("status");
 const textInput = document.getElementById("text-input");
 const sendBtn = document.getElementById("send-btn");
 const micBtn = document.getElementById("mic-btn");
+const loadingScreen = document.getElementById("loading-screen");
+const loadingMessage = document.getElementById("loading-message");
 
 let ws = null;
 let state = "idle";
+let appReady = false;
 let reconnectTimer = null;
 let typingIndicator = null;
 let activeAssistantBubble = null;
 
 const STATUS_LABELS = {
   idle: "Idle",
+  loading: "Loading…",
   listening: "Listening…",
   thinking: "Thinking…",
   speaking: "Speaking…",
@@ -26,7 +30,7 @@ function setState(newState) {
   state = newState;
   statusEl.textContent = STATUS_LABELS[newState] || newState;
   statusEl.className = `status ${newState}`;
-  const enabled = newState === "idle";
+  const enabled = appReady && newState === "idle";
   textInput.disabled = !enabled;
   sendBtn.disabled = !enabled;
   micBtn.disabled = !enabled;
@@ -88,6 +92,11 @@ function finalizeAssistantBubble(text) {
 
 function handleEvent(event) {
   switch (event.type) {
+    case "ready":
+      appReady = true;
+      loadingScreen.classList.add("hidden");
+      setState(state);
+      break;
     case "status":
       setState(event.state);
       if (event.state === "thinking") {
@@ -117,6 +126,10 @@ function handleEvent(event) {
       finalizeAssistantBubble(event.text);
       break;
     case "error":
+      if (!appReady) {
+        loadingMessage.textContent = event.message;
+        break;
+      }
       clearAssistantStream();
       addBubble("assistant", `Error: ${event.message}`);
       break;
@@ -140,13 +153,15 @@ function connect() {
 
   ws.onclose = () => {
     clearAssistantStream();
-    setState("idle");
+    if (appReady) {
+      setState("idle");
+    }
     reconnectTimer = setTimeout(connect, 2000);
   };
 }
 
 function send(action, extra = {}) {
-  if (!ws || ws.readyState !== WebSocket.OPEN || state !== "idle") return;
+  if (!ws || ws.readyState !== WebSocket.OPEN || !appReady || state !== "idle") return;
   ws.send(JSON.stringify({ action, ...extra }));
 }
 
@@ -163,4 +178,5 @@ textInput.addEventListener("keydown", (e) => {
 
 micBtn.addEventListener("click", () => send("listen"));
 
+setState("loading");
 connect();
