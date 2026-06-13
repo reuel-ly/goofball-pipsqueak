@@ -12,6 +12,16 @@ from .tts import speak_phrases
 _TIMEOUT_POLL_S = 0.05
 
 
+def prewarm() -> None:
+    print("Pre-warming LLM...")
+    ollama.chat(
+        model=MODEL,
+        messages=[{"role": "user", "content": "hi"}],
+        options={"num_predict": 1},
+    )
+    print("LLM ready.")
+
+
 def _timeout_flusher(
     chunker: TextChunker,
     phrase_queue: queue.Queue[str | None],
