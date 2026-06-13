@@ -5,7 +5,7 @@ from collections.abc import Callable, Iterator
 import ollama
 
 from .chunker import TextChunker
-from .config.llm import MODEL, SYSTEM
+from .config.llm import MODEL, NUM_THREADS, SYSTEM, THINK
 from .stt import listen
 from .tts import speak_phrases
 
@@ -32,7 +32,13 @@ class AgentSession:
         self.on_event(event)
 
     def _stream_chat(self) -> Iterator[str]:
-        for chunk in ollama.chat(model=MODEL, messages=self.history, stream=True):
+        for chunk in ollama.chat(
+            model=MODEL,
+            messages=self.history,
+            stream=True,
+            think=THINK,
+            options={"num_thread": NUM_THREADS},
+        ):
             token = chunk["message"]["content"]
             if token:
                 yield token
