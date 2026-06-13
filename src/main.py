@@ -18,4 +18,11 @@ def voice_loop():
 
 
 if __name__ == "__main__":
+    from .agent import prewarm as prewarm_llm
+    from .stt import prewarm as prewarm_stt
+    from .tts import prewarm as prewarm_tts
+
+    prewarm_llm()
+    prewarm_stt()
+    prewarm_tts()
     voice_loop()
