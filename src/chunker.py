@@ -13,11 +13,11 @@ class TextChunker:
     def __init__(
         self,
         *,
-        timeout_s: float = 0.4,
-        min_sentence_words: int = 4,
-        soft_clause_chars: int = 60,
+        timeout_s: float = 0.25,
+        min_sentence_words: int = 1,
+        soft_clause_chars: int = 40,
         max_chars: int = 120,
-        timeout_words: int = 5,
+        timeout_words: int = 3,
     ):
         self._buffer = ""
         self._timeout_s = timeout_s
@@ -65,6 +65,9 @@ class TextChunker:
                 chunk_end = len(self._buffer)
             elif len(self._buffer) >= self._max_chars:
                 chunk_end = self._max_chars
+                ws = self._buffer.rfind(" ", 0, self._max_chars)
+                if ws > 0:
+                    chunk_end = ws
             else:
                 break
 
