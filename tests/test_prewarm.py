@@ -27,7 +27,7 @@ class PrewarmTests(unittest.TestCase):
     def test_tts_prewarm(self, mock_pipeline, mock_synthesize):
         prewarm_tts()
         mock_pipeline.assert_called_once()
-        mock_synthesize.assert_called_once_with(".")
+        mock_synthesize.assert_called_once_with("Hello.")
 
 
 if __name__ == "__main__":

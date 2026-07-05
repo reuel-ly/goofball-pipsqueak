@@ -5,10 +5,10 @@ from src.chunker import TextChunker
 
 
 class TextChunkerTests(unittest.TestCase):
-    def test_sentence_under_four_words_stays_buffered(self):
+    def test_one_word_sentence_flushes_on_period(self):
         chunker = TextChunker()
-        self.assertEqual(chunker.add("Hi there."), [])
-        self.assertEqual(chunker.buffer, "Hi there.")
+        self.assertEqual(chunker.add("Hi."), ["Hi."])
+        self.assertEqual(chunker.buffer, "")
 
     def test_four_word_sentence_flushes_on_period(self):
         chunker = TextChunker()
@@ -57,6 +57,11 @@ class TextChunkerTests(unittest.TestCase):
         chunker = TextChunker(max_chars=12)
         self.assertEqual(chunker.add("abcdefghijklmnop"), ["abcdefghijkl"])
         self.assertEqual(chunker.buffer, "mnop")
+
+    def test_hard_length_prefers_last_whitespace(self):
+        chunker = TextChunker(max_chars=12)
+        self.assertEqual(chunker.add("hello world foo"), ["hello world"])
+        self.assertEqual(chunker.buffer, "foo")
 
     def test_timeout_flushes_only_with_enough_words(self):
         chunker = TextChunker(timeout_s=0.1, timeout_words=5)
