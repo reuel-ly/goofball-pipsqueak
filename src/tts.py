@@ -19,8 +19,14 @@ def _get_pipeline():
     return _tts
 
 
+def _iter_audio_chunks(text: str):
+    for _, _, audio in _get_pipeline()(text, voice=VOICE):
+        if audio.size:
+            yield audio
+
+
 def synthesize(text: str) -> np.ndarray:
-    chunks = [audio for _, _, audio in _get_pipeline()(text, voice=VOICE)]
+    chunks = list(_iter_audio_chunks(text))
     if not chunks:
         return np.array([], dtype=np.float32)
     return np.concatenate(chunks)
@@ -29,7 +35,7 @@ def synthesize(text: str) -> np.ndarray:
 def prewarm() -> None:
     print("Pre-warming TTS...")
     _get_pipeline()
-    synthesize(".")
+    synthesize("Hello.")
     print("TTS ready.")
 
 
@@ -86,12 +92,11 @@ def speak_phrases(
         phrase = phrase_queue.get()
         if phrase is None:
             break
-        audio = synthesize(phrase)
-        if audio.size:
+        for chunk in _iter_audio_chunks(phrase):
             if first and on_first_phrase:
                 on_first_phrase()
                 first = False
-            player.enqueue(audio)
+            player.enqueue(chunk)
 
     player.finish()
     player.wait()
