@@ -5,7 +5,7 @@ from collections.abc import Callable, Iterator
 import ollama
 
 from .chunker import TextChunker
-from .config.llm import MODEL, NUM_THREADS, SYSTEM, THINK
+from .config.llm import MAX_HISTORY_TURNS, MODEL, SYSTEM, THINK, ollama_options
 from .stt import listen
 from .tts import speak_phrases
 
@@ -17,7 +17,7 @@ def prewarm() -> None:
     ollama.chat(
         model=MODEL,
         messages=[{"role": "user", "content": "hi"}],
-        options={"num_predict": 1},
+        options=ollama_options(num_predict=1),
     )
     print("LLM ready.")
 
@@ -41,13 +41,20 @@ class AgentSession:
     def _emit(self, event: dict) -> None:
         self.on_event(event)
 
+    def _trim_history(self) -> None:
+        max_messages = MAX_HISTORY_TURNS * 2
+        if len(self.history) <= 1 + max_messages:
+            return
+        self.history = [self.history[0], *self.history[-max_messages:]]
+
     def _stream_chat(self) -> Iterator[str]:
+        self._trim_history()
         for chunk in ollama.chat(
             model=MODEL,
             messages=self.history,
             stream=True,
             think=THINK,
-            options={"num_thread": NUM_THREADS},
+            options=ollama_options(),
         ):
             token = chunk["message"]["content"]
             if token:
