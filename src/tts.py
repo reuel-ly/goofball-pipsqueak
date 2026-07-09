@@ -1,9 +1,11 @@
+import os
 import queue
 import threading
 from collections.abc import Callable
 
 import numpy as np
 import sounddevice as sd
+import torch
 from kokoro import KPipeline
 
 SAMPLERATE = 24000
@@ -33,6 +35,8 @@ def synthesize(text: str) -> np.ndarray:
 
 
 def prewarm() -> None:
+    os.environ["OMP_NUM_THREADS"] = "4"
+    torch.set_num_threads(4)
     print("Pre-warming TTS...")
     _get_pipeline()
     synthesize("Hello.")
