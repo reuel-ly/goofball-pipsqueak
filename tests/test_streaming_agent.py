@@ -119,6 +119,19 @@ class StreamingAgentTests(unittest.TestCase):
         states = [e["state"] for e in events if e.get("type") == "status"]
         self.assertIn("speaking", states)
 
+    def test_trim_history_keeps_system_and_recent_turns(self):
+        session = AgentSession()
+        for i in range(10):
+            session.history.append({"role": "user", "content": f"user-{i}"})
+            session.history.append({"role": "assistant", "content": f"assistant-{i}"})
+
+        session._trim_history()
+
+        self.assertEqual(session.history[0]["role"], "system")
+        self.assertEqual(len(session.history), 1 + 6)
+        self.assertEqual(session.history[-2]["content"], "user-9")
+        self.assertEqual(session.history[-1]["content"], "assistant-9")
+
 
 if __name__ == "__main__":
     unittest.main()

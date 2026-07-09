@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch
 
 from src.agent import prewarm as prewarm_llm
-from src.config.llm import MODEL
+from src.config.llm import MODEL, ollama_options
 from src.stt import prewarm as prewarm_stt
 from src.tts import prewarm as prewarm_tts
 
@@ -14,7 +14,7 @@ class PrewarmTests(unittest.TestCase):
         mock_chat.assert_called_once_with(
             model=MODEL,
             messages=[{"role": "user", "content": "hi"}],
-            options={"num_predict": 1},
+            options=ollama_options(num_predict=1),
         )
 
     @patch("src.stt._get_model")
