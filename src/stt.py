@@ -10,6 +10,7 @@ from faster_whisper import WhisperModel
 from .config.stt import (
     COMPUTE_TYPE,
     DEVICE,
+    ENABLE_PARTIALS,
     FRAME_MS,
     FRAME_SAMPLES,
     LANGUAGE,
@@ -117,12 +118,13 @@ def listen(device=None, on_partial: Callable[[str], None] | None = None) -> str:
             else:
                 silence_frames += 1
 
-            now = time.monotonic()
-            if now - last_partial_time >= PARTIAL_INTERVAL_S:
-                text = _transcribe(np.concatenate(utterance_frames))
-                if text:
-                    on_partial(text)
-                last_partial_time = now
+            if ENABLE_PARTIALS:
+                now = time.monotonic()
+                if now - last_partial_time >= PARTIAL_INTERVAL_S:
+                    text = _transcribe(np.concatenate(utterance_frames))
+                    if text:
+                        on_partial(text)
+                    last_partial_time = now
 
             if len(utterance_frames) >= max_frames:
                 break
