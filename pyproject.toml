@@ -26,7 +26,9 @@ dependencies = [
     "soundfile>=0.14.0",
     "uvicorn[standard]>=0.34.0",
     "webrtcvad-wheels>=2.0.14",
+    "pywebview>=5.0",
 ]
 
 [project.scripts]
 pipsqueak-web = "src.frontend.server:main"
+pipsqueak-desktop = "src.frontend.desktop:main"
