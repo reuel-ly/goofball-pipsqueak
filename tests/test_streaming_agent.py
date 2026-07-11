@@ -16,9 +16,9 @@ class StreamingAgentTests(unittest.TestCase):
             reply = session._generate_reply(speak_reply=False)
 
         self.assertEqual(reply, "Hello. Goodbye.")
-        partial_texts = [e["text"] for e in events if e["type"] == "assistant_partial"]
-        self.assertEqual(partial_texts[-1], "Hello. Goodbye.")
-        self.assertLess(partial_texts[0], partial_texts[-1])
+        deltas = [e["delta"] for e in events if e["type"] == "assistant_partial"]
+        self.assertEqual("".join(deltas), "Hello. Goodbye.")
+        self.assertGreater(len(deltas), 1)
 
     def test_tts_receives_first_phrase_before_stream_ends(self):
         session = AgentSession()
@@ -39,7 +39,7 @@ class StreamingAgentTests(unittest.TestCase):
                 phrase_put_indices.append(stream_index["i"])
             return original_put(self, item, block=block, timeout=timeout)
 
-        def drain_phrases(phrase_queue, *, on_first_phrase=None):
+        def drain_phrases(phrase_queue, *, on_first_phrase=None, stop_event=None):
             while True:
                 item = phrase_queue.get(timeout=5)
                 if item is None:
@@ -77,7 +77,7 @@ class StreamingAgentTests(unittest.TestCase):
                 phrase_put_indices.append(stream_index["i"])
             return original_put(self, item, block=block, timeout=timeout)
 
-        def drain_phrases(phrase_queue, *, on_first_phrase=None):
+        def drain_phrases(phrase_queue, *, on_first_phrase=None, stop_event=None):
             while True:
                 item = phrase_queue.get(timeout=5)
                 if item is None:
@@ -101,7 +101,7 @@ class StreamingAgentTests(unittest.TestCase):
         session = AgentSession(on_event=events.append)
         tokens = ["Hi."]
 
-        def fake_speak_phrases(phrase_queue, *, on_first_phrase=None):
+        def fake_speak_phrases(phrase_queue, *, on_first_phrase=None, stop_event=None):
             while True:
                 item = phrase_queue.get(timeout=5)
                 if item is None:
@@ -118,6 +118,37 @@ class StreamingAgentTests(unittest.TestCase):
 
         states = [e["state"] for e in events if e.get("type") == "status"]
         self.assertIn("speaking", states)
+
+    def test_request_stop_interrupts_generation(self):
+        events: list[dict] = []
+        session = AgentSession(on_event=events.append)
+        spoken_phrases: list[str] = []
+
+        def stream_then_stop():
+            yield "First sentence. "
+            session.request_stop()
+            yield "Never emitted. "
+            yield "Also never emitted."
+
+        def fake_speak_phrases(phrase_queue, *, on_first_phrase=None, stop_event=None):
+            while True:
+                item = phrase_queue.get(timeout=5)
+                if item is None:
+                    break
+                if stop_event is not None and stop_event.is_set():
+                    continue
+                spoken_phrases.append(item)
+
+        with (
+            patch.object(session, "_stream_chat", side_effect=stream_then_stop),
+            patch("src.agent.speak_phrases", side_effect=fake_speak_phrases),
+        ):
+            reply = session._generate_reply(speak_reply=True)
+
+        self.assertEqual(reply, "First sentence. ")
+        deltas = [e["delta"] for e in events if e["type"] == "assistant_partial"]
+        self.assertEqual("".join(deltas), "First sentence. ")
+        self.assertNotIn("Never emitted. ", spoken_phrases)
 
     def test_trim_history_keeps_system_and_recent_turns(self):
         session = AgentSession()
