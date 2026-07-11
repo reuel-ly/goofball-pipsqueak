@@ -48,6 +48,8 @@ def prewarm_all() -> str | None:
 async def lifespan(app: FastAPI):
     app.state.ready_event = asyncio.Event()
     app.state.prewarm_error: str | None = None
+    # One session for the whole app so history survives WebSocket reconnects.
+    app.state.session = AgentSession()
 
     async def run_prewarm() -> None:
         try:
@@ -73,7 +75,8 @@ async def websocket_endpoint(ws: WebSocket):
     def on_event(event: dict) -> None:
         loop.call_soon_threadsafe(event_queue.put_nowait, event)
 
-    session = AgentSession(on_event=on_event)
+    session: AgentSession = ws.app.state.session
+    session.on_event = on_event
 
     async def emit_events() -> None:
         while True:
@@ -81,6 +84,20 @@ async def websocket_endpoint(ws: WebSocket):
             await ws.send_json(event)
 
     emitter = asyncio.create_task(emit_events())
+
+    async def run_turn(action: str, data: dict) -> None:
+        async with turn_lock:
+            try:
+                if action == "send":
+                    text = data.get("text", "")
+                    await asyncio.to_thread(session.send_text, text, speak_reply=True)
+                elif action == "listen":
+                    await asyncio.to_thread(session.listen_and_reply)
+            except Exception as exc:
+                on_event({"type": "error", "message": format_agent_error(exc)})
+                on_event({"type": "status", "state": "idle"})
+
+    turn_task: asyncio.Task | None = None
 
     try:
         await ws.send_json({"type": "status", "state": "loading"})
@@ -92,28 +109,26 @@ async def websocket_endpoint(ws: WebSocket):
         await ws.send_json({"type": "ready"})
         await ws.send_json({"type": "status", "state": "idle"})
         while True:
+            # Turns run as background tasks so stop requests are handled
+            # immediately instead of queueing behind the running turn.
             data = await ws.receive_json()
-            if turn_lock.locked():
-                continue
-
             action = data.get("action")
-            async with turn_lock:
-                try:
-                    if action == "send":
-                        text = data.get("text", "")
-                        await asyncio.to_thread(
-                            session.send_text, text, speak_reply=True
-                        )
-                    elif action == "listen":
-                        await asyncio.to_thread(session.listen_and_reply)
-                except Exception as exc:
-                    await ws.send_json(
-                        {"type": "error", "message": format_agent_error(exc)}
-                    )
-                    await ws.send_json({"type": "status", "state": "idle"})
+            if action == "stop":
+                session.request_stop()
+                continue
+            if (turn_task and not turn_task.done()) or turn_lock.locked():
+                await ws.send_json({"type": "busy"})
+                continue
+            turn_task = asyncio.create_task(run_turn(action, data))
     except WebSocketDisconnect:
         pass
     finally:
+        if turn_task and not turn_task.done():
+            session.request_stop()
+        # A page refresh can open the new socket before this close is seen;
+        # only unbind if no newer connection has rebound the session.
+        if session.on_event is on_event:
+            session.on_event = lambda _: None
         emitter.cancel()
 
 

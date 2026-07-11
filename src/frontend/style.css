@@ -12,6 +12,65 @@ body {
   height: 100dvh;
 }
 
+.titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.4rem 0.75rem;
+  background: #0a0c12;
+  border-bottom: 1px solid #1e2028;
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+.titlebar.hidden {
+  display: none;
+}
+
+.titlebar-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #9aa0a6;
+}
+
+.close-btn {
+  -webkit-app-region: no-drag;
+  background: none;
+  border: none;
+  color: #9aa0a6;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0.1rem 0.4rem;
+  border-radius: 0.25rem;
+  line-height: 1;
+}
+
+.close-btn:hover {
+  background: #c0392b;
+  color: #fff;
+}
+
+.character-stage {
+  width: 100%;
+  height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #0f1117;
+  flex-shrink: 0;
+}
+
+.character-stage.hidden {
+  display: none;
+}
+
+#character-img {
+  height: 100%;
+  width: auto;
+  object-fit: contain;
+}
+
 .loading-screen {
   position: fixed;
   inset: 0;
@@ -63,6 +122,13 @@ body {
   margin: 0 auto;
 }
 
+.chat-panel {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
 header {
   display: flex;
   align-items: center;
@@ -90,6 +156,15 @@ header h1 {
 .status.speaking  { background: #1a2a3a; color: #68b8e8; }
 .status.loading   { background: #2a2d35; color: #9aa0a6; }
 
+.status.flash {
+  animation: busy-flash 0.6s ease;
+}
+
+@keyframes busy-flash {
+  0%, 100% { box-shadow: none; }
+  40% { box-shadow: 0 0 0 3px rgba(232, 196, 104, 0.55); }
+}
+
 .caption {
   padding: 0.5rem 1.25rem;
   font-style: italic;
@@ -100,6 +175,26 @@ header h1 {
 
 .caption.hidden {
   visibility: hidden;
+}
+
+.level-wrap {
+  height: 4px;
+  margin: 0.4rem 1.25rem 0;
+  border-radius: 999px;
+  background: #1e2028;
+  overflow: hidden;
+}
+
+.level-wrap.hidden {
+  visibility: hidden;
+}
+
+.level-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background: #6dd58c;
+  transition: width 80ms linear;
 }
 
 .transcript {
@@ -204,6 +299,10 @@ header h1 {
   cursor: not-allowed;
 }
 
+#send-btn.stop {
+  background: #c0392b;
+}
+
 #mic-btn {
   background: #2a2d35;
   font-size: 1.2rem;
@@ -212,4 +311,125 @@ header h1 {
 
 #mic-btn.active {
   background: #1a3a2a;
+}
+
+html.desktop-mode,
+html.desktop-mode body {
+  background: transparent;
+  overflow: hidden;
+}
+
+.desktop-mode .loading-screen {
+  display: none;
+}
+
+.desktop-mode .app {
+  align-items: flex-end;
+  flex-direction: row;
+  gap: 20px;
+  justify-content: flex-end;
+  max-width: none;
+  padding: 24px;
+  width: 100%;
+}
+
+.desktop-mode .chat-panel {
+  position: relative;
+  flex: 0 0 412px;
+  height: 460px;
+  min-width: 0;
+  overflow: visible;
+  background: rgba(15, 17, 23, 0.97);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.42);
+  opacity: 1;
+  transform: translateX(0) scale(1);
+  transform-origin: right bottom;
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease,
+    visibility 160ms;
+  visibility: visible;
+}
+
+.desktop-mode .chat-panel::after {
+  content: "";
+  position: absolute;
+  top: 55%;
+  right: -13px;
+  width: 24px;
+  height: 24px;
+  background: #0f1117;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  transform: rotate(45deg);
+}
+
+.desktop-mode .chat-panel.closed {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(20px) scale(0.96);
+  visibility: hidden;
+}
+
+.desktop-mode .chat-panel header {
+  flex-shrink: 0;
+  padding: 0.85rem 1rem;
+}
+
+.desktop-mode .chat-panel .caption {
+  flex-shrink: 0;
+}
+
+.desktop-mode .chat-panel .transcript {
+  min-height: 0;
+  padding: 1rem;
+}
+
+.desktop-mode .chat-panel .input-bar {
+  flex-shrink: 0;
+  padding: 0.7rem;
+}
+
+.desktop-mode .character-stage {
+  display: flex;
+  flex: 0 0 280px;
+  width: 280px;
+  height: 280px;
+  overflow: visible;
+  background: transparent;
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+}
+
+.desktop-mode .character-stage:focus-visible {
+  filter: drop-shadow(0 0 10px rgba(104, 184, 232, 0.8));
+}
+
+.desktop-mode #character-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+
+.desktop-mode .titlebar {
+  position: fixed;
+  right: 32px;
+  bottom: 280px;
+  z-index: 10;
+  width: 264px;
+  padding: 0.3rem 0.4rem 0.3rem 0.65rem;
+  background: rgba(10, 12, 18, 0.35);
+  border: 0;
+  border-radius: 999px;
+  opacity: 0.35;
+  transition: opacity 140ms ease;
+}
+
+.desktop-mode .titlebar:hover {
+  opacity: 1;
 }
