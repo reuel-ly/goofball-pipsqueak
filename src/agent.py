@@ -37,6 +37,11 @@ class AgentSession:
     def __init__(self, on_event: Callable[[dict], None] | None = None):
         self.history = [{"role": "system", "content": SYSTEM}]
         self.on_event = on_event or (lambda _: None)
+        self._stop_event = threading.Event()
+
+    def request_stop(self) -> None:
+        """Interrupt the current turn: stop generation, playback, or listening."""
+        self._stop_event.set()
 
     def _emit(self, event: dict) -> None:
         self.on_event(event)
@@ -66,7 +71,7 @@ class AgentSession:
             queue.Queue() if speak_reply else None
         )
         reply_parts: list[str] = []
-        stop_event = threading.Event()
+        flusher_stop = threading.Event()
         tts_thread: threading.Thread | None = None
         timeout_thread: threading.Thread | None = None
 
@@ -78,20 +83,27 @@ class AgentSession:
             tts_thread = threading.Thread(
                 target=speak_phrases,
                 args=(phrase_queue,),
-                kwargs={"on_first_phrase": on_first_phrase},
+                kwargs={
+                    "on_first_phrase": on_first_phrase,
+                    "stop_event": self._stop_event,
+                },
                 daemon=True,
             )
             tts_thread.start()
             timeout_thread = threading.Thread(
                 target=_timeout_flusher,
-                args=(chunker, phrase_queue, stop_event),
+                args=(chunker, phrase_queue, flusher_stop),
                 daemon=True,
             )
             timeout_thread.start()
 
+        stopped = False
         for token in self._stream_chat():
+            if self._stop_event.is_set():
+                stopped = True
+                break
             reply_parts.append(token)
-            self._emit({"type": "assistant_partial", "text": "".join(reply_parts)})
+            self._emit({"type": "assistant_partial", "delta": token})
 
             if speak_reply and phrase_queue is not None:
                 for phrase in chunker.add(token):
@@ -100,9 +112,10 @@ class AgentSession:
         reply = "".join(reply_parts)
 
         if speak_reply and phrase_queue is not None:
-            stop_event.set()
-            for phrase in chunker.flush():
-                phrase_queue.put(phrase)
+            flusher_stop.set()
+            if not stopped:
+                for phrase in chunker.flush():
+                    phrase_queue.put(phrase)
             phrase_queue.put(None)
             if tts_thread:
                 tts_thread.join()
@@ -112,6 +125,7 @@ class AgentSession:
         return reply
 
     def send_text(self, text: str, *, speak_reply: bool = False) -> str | None:
+        self._stop_event.clear()
         text = text.strip()
         if not text:
             self._emit({"type": "status", "state": "idle"})
@@ -130,13 +144,21 @@ class AgentSession:
         return reply
 
     def listen_and_reply(self) -> str | None:
+        self._stop_event.clear()
         self._emit({"type": "status", "state": "listening"})
 
         def on_partial(text: str) -> None:
             self._emit({"type": "partial", "text": text})
 
-        text = listen(on_partial=on_partial)
-        if not text:
+        def on_level(value: float) -> None:
+            self._emit({"type": "level", "value": value})
+
+        text = listen(
+            on_partial=on_partial,
+            on_level=on_level,
+            stop_event=self._stop_event,
+        )
+        if not text or self._stop_event.is_set():
             self._emit({"type": "status", "state": "idle"})
             return None
 
