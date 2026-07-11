@@ -33,6 +33,12 @@ body {
   color: #9aa0a6;
 }
 
+.titlebar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
 .close-btn {
   -webkit-app-region: no-drag;
   background: none;
@@ -48,6 +54,14 @@ body {
 .close-btn:hover {
   background: #c0392b;
   color: #fff;
+}
+
+.widget-stack {
+  display: contents;
+}
+
+.answer-bubble {
+  display: none;
 }
 
 .character-stage {
@@ -179,10 +193,11 @@ header h1 {
 
 .level-wrap {
   height: 4px;
-  margin: 0.4rem 1.25rem 0;
+  margin: 0 1.25rem 0.4rem;
   border-radius: 999px;
   background: #1e2028;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .level-wrap.hidden {
@@ -315,8 +330,10 @@ header h1 {
 
 html.desktop-mode,
 html.desktop-mode body {
-  background: transparent;
+  background: transparent !important;
   overflow: hidden;
+  width: 100%;
+  height: 100%;
 }
 
 .desktop-mode .loading-screen {
@@ -324,88 +341,45 @@ html.desktop-mode body {
 }
 
 .desktop-mode .app {
-  align-items: flex-end;
-  flex-direction: row;
-  gap: 20px;
-  justify-content: flex-end;
+  position: relative;
+  align-items: stretch;
+  background: transparent;
+  flex-direction: column;
+  justify-content: stretch;
   max-width: none;
-  padding: 24px;
+  margin: 0;
+  padding: 0;
   width: 100%;
+  height: 100%;
 }
 
 .desktop-mode .chat-panel {
+  display: none !important;
+}
+
+.desktop-mode .widget-stack {
+  display: flex;
   position: relative;
-  flex: 0 0 412px;
-  height: 460px;
-  min-width: 0;
-  overflow: visible;
-  background: rgba(15, 17, 23, 0.97);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 20px;
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.42);
-  opacity: 1;
-  transform: translateX(0) scale(1);
-  transform-origin: right bottom;
-  transition:
-    opacity 160ms ease,
-    transform 160ms ease,
-    visibility 160ms;
-  visibility: visible;
-}
-
-.desktop-mode .chat-panel::after {
-  content: "";
-  position: absolute;
-  top: 55%;
-  right: -13px;
-  width: 24px;
-  height: 24px;
-  background: #0f1117;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
-  transform: rotate(45deg);
-}
-
-.desktop-mode .chat-panel.closed {
-  opacity: 0;
-  pointer-events: none;
-  transform: translateX(20px) scale(0.96);
-  visibility: hidden;
-}
-
-.desktop-mode .chat-panel header {
-  flex-shrink: 0;
-  padding: 0.85rem 1rem;
-}
-
-.desktop-mode .chat-panel .caption {
-  flex-shrink: 0;
-}
-
-.desktop-mode .chat-panel .transcript {
-  min-height: 0;
-  padding: 1rem;
-}
-
-.desktop-mode .chat-panel .input-bar {
-  flex-shrink: 0;
-  padding: 0.7rem;
+  flex-direction: column;
+  align-items: stretch;
+  flex: 1;
+  gap: 4px;
+  width: 100%;
+  height: 100%;
+  padding: 0;
 }
 
 .desktop-mode .character-stage {
-  display: flex;
-  flex: 0 0 280px;
-  width: 280px;
-  height: 280px;
-  overflow: visible;
+  display: block;
+  position: relative;
+  flex: 0 0 auto;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
   background: transparent;
-  cursor: pointer;
   outline: none;
   user-select: none;
-}
-
-.desktop-mode .character-stage:focus-visible {
-  filter: drop-shadow(0 0 10px rgba(104, 184, 232, 0.8));
+  -webkit-app-region: drag;
 }
 
 .desktop-mode #character-img {
@@ -416,20 +390,129 @@ html.desktop-mode body {
   -webkit-user-drag: none;
 }
 
+.desktop-mode .answer-bubble {
+  display: block;
+  position: absolute;
+  top: 0.45rem;
+  left: 50%;
+  z-index: 5;
+  width: max-content;
+  max-width: calc(100% - 2.5rem);
+  max-height: 4.5rem;
+  overflow-y: auto;
+  padding: 0.4rem 0.65rem;
+  background: rgba(15, 17, 23, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+  color: #e8eaed;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  word-wrap: break-word;
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  transition:
+    opacity 400ms ease,
+    transform 400ms ease,
+    visibility 400ms;
+  visibility: visible;
+  -webkit-app-region: no-drag;
+}
+
+.desktop-mode .answer-bubble.hidden {
+  display: block;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(4px);
+  visibility: hidden;
+}
+
+.desktop-mode .answer-bubble.fading {
+  opacity: 0;
+  transform: translateX(-50%) translateY(4px);
+  visibility: hidden;
+}
+
+.desktop-mode .answer-bubble.streaming::after {
+  content: "▋";
+  display: inline-block;
+  margin-left: 0.1rem;
+  animation: cursor-blink 1s step-end infinite;
+  color: #9aa0a6;
+}
+
+.desktop-mode .answer-bubble.caption-mode {
+  font-style: italic;
+  color: #9aa0a6;
+}
+
+.desktop-mode .level-wrap {
+  position: relative;
+  flex-shrink: 0;
+  height: 4px;
+  margin: 0 0.25rem;
+  -webkit-app-region: no-drag;
+}
+
+.desktop-mode .level-wrap.hidden {
+  visibility: hidden;
+}
+
+.desktop-mode .input-bar {
+  position: relative;
+  flex-shrink: 0;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0.3rem;
+  background: rgba(15, 17, 23, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+  -webkit-app-region: no-drag;
+}
+
+.desktop-mode .input-bar input {
+  min-width: 0;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+.desktop-mode .input-bar button {
+  padding: 0.35rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+.desktop-mode #mic-btn {
+  padding: 0.35rem 0.45rem;
+  font-size: 0.95rem;
+}
+
 .desktop-mode .titlebar {
-  position: fixed;
-  right: 32px;
-  bottom: 280px;
-  z-index: 10;
-  width: 264px;
-  padding: 0.3rem 0.4rem 0.3rem 0.65rem;
-  background: rgba(10, 12, 18, 0.35);
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  z-index: 20;
+  display: flex;
+  justify-content: flex-end;
+  width: auto;
+  padding: 0;
+  background: transparent;
   border: 0;
-  border-radius: 999px;
-  opacity: 0.35;
+  border-radius: 0;
+  opacity: 0.4;
   transition: opacity 140ms ease;
 }
 
 .desktop-mode .titlebar:hover {
   opacity: 1;
+}
+
+.desktop-mode .close-btn {
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border-radius: 999px;
+  background: rgba(10, 12, 18, 0.55);
+  font-size: 0.75rem;
 }
