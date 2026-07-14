@@ -34,7 +34,7 @@ AgentSession                          ← Ollama chat stream + short history
 | **TTS** (`src/tts.py`) | Kokoro synthesis + gapless playback; stoppable mid-utterance |
 | **Frontends** | Same `AgentSession`; CLI wires print callbacks, web/desktop use FastAPI WebSocket |
 
-**Web / desktop:** FastAPI serves static UI and `/ws`. One `AgentSession` lives for the app lifetime (history survives reconnects). Desktop embeds that UI in a frameless pywebview window (`?desktop=1`) after starting uvicorn locally.
+**Web / desktop:** FastAPI serves the browser UI and `/ws`. One `AgentSession` lives for the app lifetime (history survives reconnects). The desktop widget is a Tauri app (`desktop/`) with its own frontend; it auto-spawns the backend on launch and connects to the same WebSocket.
 
 **States:** `loading` → `idle` → `listening` / `thinking` / `speaking` (GIFs track these in the UI).
 
@@ -42,10 +42,13 @@ AgentSession                          ← Ollama chat stream + short history
 
 ```text
 goofball-pipsqueak/
-├── pyproject.toml          # deps + entry points (pipsqueak-web, pipsqueak-desktop)
+├── pyproject.toml          # deps + entry point (pipsqueak-web)
 ├── .env                    # optional local env (e.g. HF_TOKEN for model downloads)
 ├── scripts/
 │   └── kokoro_tts_sanity_check.py
+├── desktop/                # Tauri desktop pet (character + chat bubble)
+│   ├── src/                # widget frontend (TS + Vite), character GIFs
+│   └── src-tauri/          # Rust shell: window config, backend spawn/kill
 ├── src/
 │   ├── main.py             # CLI voice loop
 │   ├── agent.py            # AgentSession: listen / text → LLM → optional TTS
@@ -58,11 +61,9 @@ goofball-pipsqueak/
 │   │   └── stt.py          # sample rate, VAD, Whisper model
 │   └── frontend/
 │       ├── server.py       # FastAPI + WebSocket + static mount
-│       ├── desktop.py      # pywebview widget around the web UI
-│       ├── index.html
+│       ├── index.html      # browser chat UI
 │       ├── app.js
-│       ├── style.css
-│       └── assets/         # idle / listening / thinking / speaking GIFs
+│       └── style.css
 └── tests/                  # unit / integration coverage for agent, STT, TTS, etc.
 ```
 
@@ -94,15 +95,21 @@ Push-to-talk loop in the terminal (Enter to speak):
 uv run python -m src.main
 ```
 
-### Desktop widget
+### Desktop widget (Tauri)
 
-Compact, frameless, always-on-top character window:
+Compact always-on-top character window: GIF on top, mic + text input below. Replies stream briefly above the character, then fade after a few seconds.
+
+One-time prerequisites: [Rust toolchain](https://rustup.rs/) (`winget install Rustlang.Rustup` on Windows, plus MSVC C++ Build Tools) and Node.js. Then:
 
 ```bash
-uv run pipsqueak-desktop
+cd desktop
+npm install
+npm run tauri dev
 ```
 
-The window is sized to the character GIF, with a text box and mic below it. Agent replies appear briefly above the character, then fade. Drag the character to move the window; click ✕ to close. Type a message or use the mic (or press `m` when the input is not focused). Escape stops the current turn.
+The app spawns the Python backend automatically (skipped if something is already listening on port 8000) and kills it on exit. Drag the character to move the window; hover the top-right ✕ to close. Type a message or use the mic (`m` when the input is not focused); Escape stops the current turn.
+
+`npm run tauri build` produces an installer, but the machine still needs uv, the Python environment, and Ollama — it is not a standalone distribution.
 
 ### Web UI
 
