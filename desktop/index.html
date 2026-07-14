@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pipsqueak</title>
+</head>
+<body>
+  <div class="app">
+    <button id="close-btn" class="close-btn" title="Close" aria-label="Close">✕</button>
+
+    <div id="answer-bubble" class="answer-bubble hidden" aria-live="polite"></div>
+
+    <div id="character-stage" class="character-stage" data-tauri-drag-region>
+      <img id="character-img" alt="Pipsqueak character">
+      <span id="character-badge" class="character-badge hidden"></span>
+    </div>
+
+    <div id="level-wrap" class="level-wrap hidden" aria-hidden="true">
+      <div id="level-fill" class="level-fill"></div>
+    </div>
+
+    <footer id="input-bar" class="input-bar">
+      <button id="mic-btn" type="button" title="Push to talk" aria-label="Push to talk">🎤</button>
+      <input id="text-input" type="text" placeholder="Type a message..." autocomplete="off">
+      <button id="send-btn" type="button">Send</button>
+    </footer>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
