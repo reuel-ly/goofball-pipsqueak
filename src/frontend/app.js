@@ -1,11 +1,5 @@
-const isDesktop = new URLSearchParams(location.search).get("desktop") === "1";
-const titlebar = document.getElementById("titlebar");
-const closeBtn = document.getElementById("close-btn");
-const characterStage = document.getElementById("character-stage");
-const characterImg = document.getElementById("character-img");
 const transcript = document.getElementById("transcript");
 const caption = document.getElementById("caption");
-const answerBubble = document.getElementById("answer-bubble");
 const statusEl = document.getElementById("status");
 const textInput = document.getElementById("text-input");
 const sendBtn = document.getElementById("send-btn");
@@ -15,19 +9,6 @@ const loadingMessage = document.getElementById("loading-message");
 const levelWrap = document.getElementById("level-wrap");
 const levelFill = document.getElementById("level-fill");
 
-const ANSWER_FADE_MS = 10_000;
-const ANSWER_FADE_TRANSITION_MS = 400;
-
-if (isDesktop) {
-  document.documentElement.classList.add("desktop-mode");
-  titlebar.classList.remove("hidden");
-  characterStage.classList.remove("hidden");
-  loadingScreen.classList.add("hidden");
-  closeBtn.addEventListener("click", () => {
-    window.pywebview.api.close();
-  });
-}
-
 let ws = null;
 let state = "idle";
 let appReady = false;
@@ -36,8 +17,6 @@ let typingIndicator = null;
 let activeAssistantBubble = null;
 let assistantStreamText = "";
 let busyFlashTimer = null;
-let answerFadeTimer = null;
-let answerClearTimer = null;
 
 const STATUS_LABELS = {
   idle: "Idle",
@@ -47,61 +26,8 @@ const STATUS_LABELS = {
   speaking: "Speaking…",
 };
 
-const CHARACTER_GIFS = {
-  idle:      "/assets/idle.gif",
-  loading:   "/assets/idle.gif",
-  listening: "/assets/listening.gif",
-  thinking:  "/assets/thinking.gif",
-  speaking:  "/assets/speaking.gif",
-};
-
-function setCharacter(newState) {
-  const src = CHARACTER_GIFS[newState] ?? "/assets/idle.gif";
-  if (characterImg.getAttribute("src") !== src) characterImg.src = src;
-}
-
 function scrollTranscript() {
   transcript.scrollTop = transcript.scrollHeight;
-}
-
-function clearAnswerFadeTimers() {
-  if (answerFadeTimer) {
-    clearTimeout(answerFadeTimer);
-    answerFadeTimer = null;
-  }
-  if (answerClearTimer) {
-    clearTimeout(answerClearTimer);
-    answerClearTimer = null;
-  }
-}
-
-function hideAnswerBubble() {
-  if (!isDesktop || !answerBubble) return;
-  clearAnswerFadeTimers();
-  answerBubble.classList.add("hidden");
-  answerBubble.classList.remove("fading", "streaming", "caption-mode");
-  answerBubble.textContent = "";
-}
-
-function showAnswerBubble(text, { streaming = false, captionMode = false } = {}) {
-  if (!isDesktop || !answerBubble) return;
-  clearAnswerFadeTimers();
-  answerBubble.textContent = text;
-  answerBubble.classList.toggle("streaming", streaming);
-  answerBubble.classList.toggle("caption-mode", captionMode);
-  answerBubble.classList.remove("hidden", "fading");
-}
-
-function scheduleAnswerFade() {
-  if (!isDesktop || !answerBubble) return;
-  clearAnswerFadeTimers();
-  answerFadeTimer = setTimeout(() => {
-    answerBubble.classList.add("fading");
-    answerBubble.classList.remove("streaming");
-    answerClearTimer = setTimeout(() => {
-      hideAnswerBubble();
-    }, ANSWER_FADE_TRANSITION_MS);
-  }, ANSWER_FADE_MS);
 }
 
 function setState(newState) {
@@ -124,11 +50,6 @@ function setState(newState) {
 
   levelWrap.classList.toggle("hidden", !listening);
   if (!listening) levelFill.style.width = "0%";
-  setCharacter(newState);
-
-  if (isDesktop && idle && appReady) {
-    textInput.focus();
-  }
 }
 
 function addBubble(role, text) {
@@ -176,9 +97,6 @@ function appendAssistantDelta(delta) {
   assistantStreamText += delta;
   activeAssistantBubble.textContent = assistantStreamText;
   scrollTranscript();
-  if (isDesktop) {
-    showAnswerBubble(assistantStreamText, { streaming: true });
-  }
 }
 
 function finalizeAssistantBubble(text) {
@@ -188,10 +106,6 @@ function finalizeAssistantBubble(text) {
   activeAssistantBubble = null;
   assistantStreamText = "";
   scrollTranscript();
-  if (isDesktop) {
-    showAnswerBubble(text, { streaming: false });
-    scheduleAnswerFade();
-  }
 }
 
 function flashBusy() {
@@ -212,22 +126,15 @@ function handleEvent(event) {
       appReady = true;
       loadingScreen.classList.add("hidden");
       setState(state);
-      if (isDesktop) textInput.focus();
       break;
     case "status":
       setState(event.state);
       if (event.state === "thinking") {
         showTypingIndicator();
-        if (isDesktop) {
-          showAnswerBubble("…", { streaming: true });
-        }
       } else if (event.state === "listening") {
         clearAssistantStream();
         caption.classList.add("hidden");
         caption.textContent = "";
-        if (isDesktop) {
-          showAnswerBubble("Listening…", { captionMode: true });
-        }
       } else if (event.state === "idle") {
         removeTypingIndicator();
         activeAssistantBubble = null;
@@ -236,9 +143,6 @@ function handleEvent(event) {
     case "partial":
       caption.classList.remove("hidden");
       caption.textContent = event.text;
-      if (isDesktop) {
-        showAnswerBubble(event.text, { captionMode: true });
-      }
       break;
     case "level":
       setLevel(event.value);
@@ -253,31 +157,17 @@ function handleEvent(event) {
       caption.classList.add("hidden");
       caption.textContent = "";
       addBubble("user", event.text);
-      if (isDesktop) {
-        clearAnswerFadeTimers();
-        hideAnswerBubble();
-      }
       break;
     case "assistant":
       finalizeAssistantBubble(event.text);
       break;
     case "error":
       if (!appReady) {
-        if (isDesktop) {
-          addBubble("assistant", `Error: ${event.message}`);
-          showAnswerBubble(`Error: ${event.message}`);
-          scheduleAnswerFade();
-        } else {
-          loadingMessage.textContent = event.message;
-        }
+        loadingMessage.textContent = event.message;
         break;
       }
       clearAssistantStream();
       addBubble("assistant", `Error: ${event.message}`);
-      if (isDesktop) {
-        showAnswerBubble(`Error: ${event.message}`);
-        scheduleAnswerFade();
-      }
       break;
   }
 }
@@ -313,9 +203,6 @@ function wsSend(payload) {
 
 function send(action, extra = {}) {
   if (state !== "idle") return;
-  if (isDesktop) {
-    clearAnswerFadeTimers();
-  }
   wsSend({ action, ...extra });
 }
 

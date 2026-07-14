@@ -4,20 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pipsqueak Agent</title>
-  <script>
-    // Apply before first paint so desktop mode does not flash the default white page bg.
-    if (new URLSearchParams(location.search).get("desktop") === "1") {
-      document.documentElement.classList.add("desktop-mode");
-      document.documentElement.style.background = "transparent";
-    }
-  </script>
-  <link rel="stylesheet" href="/style.css?v=9">
+  <link rel="stylesheet" href="/style.css?v=10">
 </head>
 <body>
-  <div id="titlebar" class="titlebar hidden">
-    <button id="close-btn" class="close-btn" title="Close">✕</button>
-  </div>
-
   <div id="loading-screen" class="loading-screen">
     <div class="loading-content">
       <h1>Pipsqueak</h1>
@@ -27,36 +16,26 @@
   </div>
 
   <div class="app">
-    <section id="chat-panel" class="chat-panel">
-      <header>
-        <h1>Pipsqueak</h1>
-        <span id="status" class="status idle">Idle</span>
-      </header>
+    <header>
+      <h1>Pipsqueak</h1>
+      <span id="status" class="status idle">Idle</span>
+    </header>
 
-      <div id="caption" class="caption hidden"></div>
+    <div id="caption" class="caption hidden"></div>
 
-      <main id="transcript" class="transcript"></main>
-    </section>
+    <main id="transcript" class="transcript"></main>
 
-    <div id="widget-stack" class="widget-stack">
-      <div id="answer-bubble" class="answer-bubble hidden" aria-live="polite"></div>
-
-      <div id="character-stage" class="character-stage hidden">
-        <img id="character-img" src="/assets/idle.gif" alt="Pipsqueak">
-      </div>
-
-      <div id="level-wrap" class="level-wrap hidden" aria-hidden="true">
-        <div id="level-fill" class="level-fill"></div>
-      </div>
-
-      <footer class="input-bar">
-        <button id="mic-btn" type="button" title="Push to talk">🎤</button>
-        <input id="text-input" type="text" placeholder="Type a message..." autocomplete="off">
-        <button id="send-btn" type="button">Send</button>
-      </footer>
+    <div id="level-wrap" class="level-wrap hidden" aria-hidden="true">
+      <div id="level-fill" class="level-fill"></div>
     </div>
+
+    <footer class="input-bar">
+      <button id="mic-btn" type="button" title="Push to talk">🎤</button>
+      <input id="text-input" type="text" placeholder="Type a message..." autocomplete="off">
+      <button id="send-btn" type="button">Send</button>
+    </footer>
   </div>
 
-  <script src="/app.js?v=9"></script>
+  <script src="/app.js?v=10"></script>
 </body>
 </html>
